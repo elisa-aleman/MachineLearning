@@ -1,5 +1,5 @@
 # MachineLearning Kfolds
-K-folds with returns for F1, Accuracy, Precision, Recall and counts for each prediction
+Binary and Multiclass K-folds with returns for F1, Accuracy, Precision, Recall and counts for each prediction
 
 * __Support Vector Machine__
 * __Gradient Boost Machine__
