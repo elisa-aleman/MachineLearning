@@ -4,6 +4,7 @@ import numpy
 import scipy
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from sklearn.metrics import confusion_matrix
+from collections import Counter
 
 ###########################
 ######### Metrics #########
@@ -11,31 +12,63 @@ from sklearn.metrics import confusion_matrix
 
 def F_score(y_true, y_pred, with_counts=True):
     '''
-    precision = true_positives / (true_positives + false_positives)
-    recall = true_positives / (true_positives + false_negatives)
-    accuracy = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
-    Correct Prediction, True Positive, True Negative, Incorrect Prediction, False Positive, False Negative
+        Calculates F-score, also outputs accuracy, recall and precision, as well as a counter dictionary.
+
+        The main calculations are as follows:
+            precision = true_positives / (true_positives + false_positives)
+            recall = true_positives / (true_positives + false_negatives)
+            accuracy = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+
+        For convenience, in the counter dictionary, the following abbreviations are used:
+            CP: Correct Predictions
+            TP: True Positive
+            TN: True Negative
+            IP: Incorrect Predictions
+            FP: False Positive
+            FN: False Negative
+
+        :param (list or 1d array) y_true: list of true target values 
+        :param (list or 1d array) y_pred: list of target predictions made by the learning machine
+        :param (bool) with_counts: if true, returns the counts dictionary as part of the resulting output.
+
+        :return: results dictionary with shape:
+            {
+                "precision":_,
+                "recall":_,
+                "accuracy":_,
+                "F1":_,
+                "counts": {
+                    "CP":_,
+                    "TP":_,
+                    "TN":_,
+                    "IP":_,
+                    "FP":_,
+                    "FN":_
+                }
+            }
     '''
     if type(y_true) == type(numpy.array([])):
         y_true = y_true.tolist()
+    if type(y_pred) == type(numpy.array([])):
+        y_pred = y_pred.tolist()
     if with_counts:
-        counts = {"CP":0, "TP": 0, "TN":0, "IP":0, "FP":0, "FN":0}
+        counts = Counter({"CP":0, "TP": 0, "TN":0, "IP":0, "FP":0, "FN":0})
         testsize = len(y_true)
         for y_set in zip(y_pred, y_true):
-                predicted = y_set[0]
-                true_value = y_set[1]
-                if (predicted == true_value): # test data
-                    counts["CP"] += 1
-                    if predicted == 1:
-                        counts["TP"] += 1
-                    else:
-                        counts["TN"] += 1
+            predicted = y_set[0]
+            true_value = y_set[1]
+            if (predicted == true_value): # test data
+                counts["CP"] += 1
+                if predicted == 1:
+                    counts["TP"] += 1
                 else:
-                    counts["IP"] += 1
-                    if predicted == 1:
-                        counts["FP"] += 1
-                    else:
-                        counts["FN"] += 1
+                    counts["TN"] += 1
+            else:
+                counts["IP"] += 1
+                if predicted == 1:
+                    counts["FP"] += 1
+                else:
+                    counts["FN"] += 1
         if counts["TP"]+counts["FP"]>0:
             precision = counts["TP"] / (counts["TP"] + counts["FP"])
         else:
@@ -50,7 +83,6 @@ def F_score(y_true, y_pred, with_counts=True):
         else:
             F1 = 0
     else:
-        # sklearn methods:
         precision = precision_score(y_true, y_pred)
         recall = recall_score(y_true, y_pred)
         accuracy = accuracy_score(y_true, y_pred)
@@ -61,6 +93,64 @@ def F_score(y_true, y_pred, with_counts=True):
     return results
 
 def F_score_Kfolds(true_ys_list, y_pred_list, with_counts=True, with_lists=True):
+    '''
+        This method is used after having performed a k-folds cross validation separately.
+        The input is the nested lists of true values and predictions resulting of that k-folds method.
+        The method calculates F-score, accuracy, recall and precision, as well as a counter dictionary in each cycle.
+        The average and standard deviation values for each of those are saved in a dictionary, as well as a list of the results if specified.
+
+        The main calculations are as follows:
+            precision = true_positives / (true_positives + false_positives)
+            recall = true_positives / (true_positives + false_negatives)
+            accuracy = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+
+        For convenience, in the counter dictionary, the following abbreviations are used:
+            CP: Correct Predictions
+            TP: True Positive
+            TN: True Negative
+            IP: Incorrect Predictions
+            FP: False Positive
+            FN: False Negative
+
+        :param (nested list or 2d array) true_ys_list: nested list of true target values. The length of the list is the number k of folds used in the cross validation.
+        :param (nested list or 2d array) y_pred_list: nested list of target predictions made by the learning machine. The length of the list is the number k of folds used in the cross validation.
+        :param (bool) with_counts: if true, returns a list of the counts dictionaries as part of the resulting output for each cycle in the k-folds operation.
+        :param (bool) with_lists: if true, returns the list of values used to calculate the average and standard deviation of each result.
+
+        :return: results dictionary with shape:
+            {
+                "precision":{
+                    "average":_,
+                    "std": _,
+                    "list": [...],
+                },
+                "recall": {
+                    "average":_,
+                    "std": _,
+                    "list": [...],
+                },
+                "accuracy": {
+                    "average":_,
+                    "std": _,
+                    "list": [...],
+                },
+                "F1": {
+                    "average":_,
+                    "std": _,
+                    "list": [...],
+                },
+                "counts": [
+                    {
+                        "CP":_,
+                        "TP":_,
+                        "TN":_,
+                        "IP":_,
+                        "FP":_,
+                        "FN":_
+                    }, {...} ...
+                ]
+            }
+    '''
     precisions = []
     accuracies = []
     recalls = []
@@ -110,19 +200,67 @@ def F_score_Kfolds(true_ys_list, y_pred_list, with_counts=True, with_lists=True)
         results["recall"]["list"]= recalls
         results["accuracy"]["list"]= accuracies
         results["F1"]["list"]= f1s
-    # results = [
-    #     [avpr, stpr, precisions],
-    #     [avre, stre, recalls],
-    #     [avac, stac, accuracies],
-    #     [avf1, stf1, f1s],
-    #     counts
-    #     ]
     return results
 
 def F_score_multiclass(y_true, y_pred, with_counts=True, with_confusion_matrix=True):
+    '''
+        For a multi-class problem, calculates F-score, also outputs accuracy, recall and precision, as well as a counter dictionary.
+        Because the F-score is inherently a binary measure in nature, this method employs a workaround.
+        For each class, we compare the results of predictions of that class contrasting with all the rest of the classes combined into, what basically is "not this class".
+        This way we can perform a binary classification method on each class separately, and then compare the results between them.
+
+        For example, in a 3 class scenario: a,b,c.
+            a results: a vs. b & c
+            b results: b vs. a & c
+            c results: c vs. a & b
+
+        So the output is still a binary measure for each class in a multi-class problem.
+        Because this is a multi-class problem, the method also outputs a confusion matrix.
+
+        The main calculations are as follows:
+            precision = true_positives / (true_positives + false_positives)
+            recall = true_positives / (true_positives + false_negatives)
+            accuracy = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+
+        For convenience, in the counter dictionary, the following abbreviations are used:
+            CP: Correct Predictions
+            TP: True Positive
+            TN: True Negative
+            IP: Incorrect Predictions
+            FP: False Positive
+            FN: False Negative
+
+        :param (list or 1d array) y_true: list of true target values 
+        :param (list or 1d array) y_pred: list of target predictions made by the learning machine
+        :param (bool) with_counts: if true, returns the counts dictionary as part of the resulting output.
+        :param (bool) with_confusion_matrix: if true, returns the confusion matrix used in the multi-class analysis.
+
+        :return: results dictionary with shape:
+            {
+                0:  {
+                        "precision":_,
+                        "recall":_,
+                        "accuracy":_,
+                        "F1":_,
+                        "counts": {
+                            "CP":_,
+                            "TP":_,
+                            "TN":_,
+                            "IP":_,
+                            "FP":_,
+                            "FN":_
+                        },
+                        "confusion_matrix":_
+                    },
+                1: {...},
+                2: {...},
+                ...
+                class_index_n: {...}
+            } 
+    '''
     cm = confusion_matrix(y_true, y_pred)
     results = {}
-    counts = {}
+    counts = Counter({})
     testsize = len(y_true)
     for index, row in enumerate(cm):
         results[index] = {}
@@ -156,6 +294,90 @@ def F_score_multiclass(y_true, y_pred, with_counts=True, with_confusion_matrix=T
     return results
 
 def F_score_multiclass_Kfolds(true_ys_list, y_pred_list, with_counts=True, with_lists=True, with_confusion_matrix=True):
+    '''
+        This method is used after having performed a k-folds cross validation separately.
+        The input is the nested lists of true values and predictions resulting of that k-folds method.
+        For a multi-class problem, calculates F-score, also outputs accuracy, recall and precision, as well as a counter dictionary in each cycle.
+        The average and standard deviation values for each of those are saved in a dictionary, as well as a list of the results if specified.
+        
+        Because the F-score is inherently a binary measure in nature, this method employs a workaround.
+        For each class, we compare the results of predictions of that class contrasting with all the rest of the classes combined into, what basically is "not this class".
+        This way we can perform a binary classification method on each class separately, and then compare the results between them.
+
+        For example, in a 3 class scenario: a,b,c.
+            a results: a vs. b & c
+            b results: b vs. a & c
+            c results: c vs. a & b
+
+        So the output is still a binary measure for each class in a multi-class problem.
+        Because this is a multi-class problem, the method also outputs a confusion matrix.
+        However, since it is applied several times in the cycles of k-folds, the method outputs, the sum, average and standard deviations of the confusion matrices, as well as a list of each occurrence.
+
+        The main calculations are as follows:
+            precision = true_positives / (true_positives + false_positives)
+            recall = true_positives / (true_positives + false_negatives)
+            accuracy = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+
+        For convenience, in the counter dictionary, the following abbreviations are used:
+            CP: Correct Predictions
+            TP: True Positive
+            TN: True Negative
+            IP: Incorrect Predictions
+            FP: False Positive
+            FN: False Negative
+
+        :param (nested list or 2d array) true_ys_list: nested list of true target values. The length of the list is the number k of folds used in the cross validation.
+        :param (nested list or 2d array) y_pred_list: nested list of target predictions made by the learning machine. The length of the list is the number k of folds used in the cross validation.
+        :param (bool) with_counts: if true, returns a list of the counts dictionaries as part of the resulting output for each cycle in the k-folds operation.
+        :param (bool) with_lists: if true, returns the list of values used to calculate the average and standard deviation of each result.
+        :param (bool) with_confusion_matrix: if true, returns the confusion matrix used in the multi-class analysis.
+
+        :return: results dictionary with shape:
+            {
+                0:  {
+                        "precision":{
+                            "average":_,
+                            "std": _,
+                            "list": [...],
+                        },
+                        "recall": {
+                            "average":_,
+                            "std": _,
+                            "list": [...],
+                        },
+                        "accuracy": {
+                            "average":_,
+                            "std": _,
+                            "list": [...],
+                        },
+                        "F1": {
+                            "average":_,
+                            "std": _,
+                            "list": [...],
+                        },
+                        "counts": [
+                            {
+                                "CP":_,
+                                "TP":_,
+                                "TN":_,
+                                "IP":_,
+                                "FP":_,
+                                "FN":_
+                            }, {...} ...
+                        ]
+                        "confusion_matrix": {
+                            "sum":_,
+                            "average":_,
+                            "std":_,
+                            "list": [...]
+                        }
+                    },
+                1: {...},
+                2: {...},
+                ...
+                class_index_n: {...}
+            } 
+    '''
     indexes = numpy.unique(y_pred_list[0])
     results = {}
     for index in indexes:
@@ -211,17 +433,9 @@ def F_score_multiclass_Kfolds(true_ys_list, y_pred_list, with_counts=True, with_
             results[index]["recall"]["list"]= recalls
             results[index]["accuracy"]["list"]= accuracies
             results[index]["F1"]["list"]= f1s
-        # results = [
-        #     [avpr, stpr, precisions],
-        #     [avre, stre, recalls],
-        #     [avac, stac, accuracies],
-        #     [avf1, stf1, f1s],
-        #     counts
-        #     ]
     if with_confusion_matrix:
             cm_sum = sum(cms)
             cmav = cm_sum/len(cms)
-            # cmav = numpy.average(numpy.array(cms), axis=0)
             cmstd = numpy.ndarray.std(numpy.array(cms), axis=0)
             results["confusion_matrix"] = {
                 "sum": cm_sum,
