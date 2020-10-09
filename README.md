@@ -102,6 +102,11 @@ Then install homebrew using proxy settings as well:
 ```
 /bin/bash -c "$(curl -x {PROXY_HOST}:{PORT} -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 ```
+And finally alias `brew` so it always uses your proxy settings:
+
+```
+alias brew="https_proxy={PROXY_HOST}:{PORT} brew"
+```
 
 **Now that you have homebrew:**
 
